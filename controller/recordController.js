@@ -1,88 +1,94 @@
-import medRecords from '../models/mRecordsModel.js'
+import userModelRecord from "../models/mRecordsModel.js";
 
-export const createRecord = async(req, res)=>
-{
-    const { userId, heartBeat, systolic, diaSystolic, sugar,date} = req.body ;
-    if(!heartBeat || !systolic || !diaSystolic || !sugar)
-    {
-        return res.json({success: false, message:'Fields are empty'})
+// ✅ GET Medical Records
+export const getRecords = async (req, res) => {
+  try {
+    const records = await userModelRecord.find({ user: req.body.userId });
+    res.json({ success: true, records });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ✅ CREATE Medical Record
+export const createRecord = async (req, res) => {
+  const { userId, heartBeat, systolic, diaSystolic, sugar, date } = req.body;
+
+  if (!heartBeat || !systolic || !diaSystolic || !sugar || !date) {
+    return res.json({ success: false, message: "Fields are empty" });
+  }
+  
+console.log("hello how are your");
+
+  try {
+    const existingRecord = await userModelRecord.findOne({
+      user: userId,
+      date: new Date(date).toISOString(),
+    });
+
+    if (existingRecord) {
+      return res.json({ success: false, message: "Today's data already exists" });
     }
-    try 
-    {
-        const isPresent = await medRecords.findOne({date});
-        if(isPresent)
-        {
-            return res.json({success: false, message: 'Today data already exist'})
-        }
 
-        const enterData = new medRecords({user: userId,heartBeat, bloodPressure:{systolic,diaSystolic},sugar, date});
-        await enterData.save();
-        return res.json({success: true, message: 'Data Add Successfully'})
-        
+    const newRecord = new userModelRecord({
+      user: userId,
+      heartBeat,
+     bloodPressure:
+     {
+      systolic,
+      diaSystolic
+     } ,
+      sugar,
+      date: new Date(date),
+    });
+
+    await newRecord.save();
+    return res.json({ success: true, message: "Data added successfully" });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// ✅ EDIT Medical Record
+export const editRecord = async (req, res) => {
+  const { userId, heartBeat, systolic, diaSystolic, sugar } = req.body;
+  const date = req.params.date; // ✅ Ensure Date Format
+
+  if (!heartBeat || !systolic || !diaSystolic || !sugar) {
+    return res.json({ success: false, message: "Fields are empty" });
+  }
+
+  try {
+    const record = await userModelRecord.findOneAndUpdate(
+      { user: userId, date: date },
+      { heartBeat, bloodPressure: { systolic, diaSystolic }, sugar },
+      { new: true }
+    );
+
+    if (!record) {
+      return res.json({ success: false, message: "No record found for the given date" });
     }
-    catch(error)
-    {
-        return res.json({success: false, message:error.message});
+
+    return res.json({ success: true, message: "Record updated successfully", record });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// ✅ DELETE Medical Record
+export const deleteRecord = async (req, res) => {
+  const { userId } = req.body;
+  const date = new Date(req.params.date).toISOString(); // ✅ Ensure Date Format
+
+  try {
+    const deletedRecord = await userModelRecord.findOneAndDelete({ user: userId, date });
+
+    if (!deletedRecord) {
+      return res.json({ success: false, message: "No record found for deletion" });
     }
 
-}
-
-export const editRecord = async(req, res)=>
-{
-    const date = req.params.date;
-    console.log(date)
-    const {heartBeat, systolic, diaSystolic, sugar,userId} = req.body ;
-    if(!heartBeat || !systolic || !diaSystolic || !sugar)
-    {
-        return res.json({success: false, message:'Fields are empty'})
-    }
-    try 
-    {
-        const isPresent = await medRecords.findOne({date});
-        if(!isPresent)
-        {
-            return res.json({success: false, message: 'Today data are not exist'})
-        }
-        const filter = {user: userId, date};
-        const update = {
-            heartBeat, bloodPressure:{systolic,diaSystolic},sugar
-        }
-        const editData = await medRecords.findOneAndUpdate(filter, update);
-        await editData.save()
-      
-
-        return res.json({success: true, message: 'Update data Successfully'})
-
-    }
-    catch(error)
-    {
-        return res.json({success: false, message:error.message});
-    }
-}
-
-export const deleteRecord = async(req, res)=>
-{
-    const date = req.params.date;
-    const {userId} = req.body ;
-    console.log(userId)
-    try 
-    {
-        const isPresent = await medRecords.findOne({date});
-        if(!isPresent)
-        {
-            return res.json({success: false, message: 'Today data are not exist'})
-        }
-        const filter = {user: userId, date};
-       
-        const deleteData = await medRecords.findOneAndDelete(filter);
-      
-      
-
-        return res.json({success: true, message: 'Data Deleted Successfully'})
-
-    }
-    catch(error)
-    {
-        return res.json({success: false, message:error.message});
-    }
-}
+    return res.json({ success: true, message: "Data deleted successfully" });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};

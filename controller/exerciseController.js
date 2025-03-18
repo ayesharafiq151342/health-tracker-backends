@@ -43,34 +43,30 @@ export const getExercises = async (req, res) => {
 
 
 export const editExercise = async (req, res) => {
-  const { name, duration, category, date, userId } = req.body;
-  const { id } = req.params; // ✅ Get exercise ID from URL
+  const { name, duration, category, date } = req.body;
+  const { id } = req.params;
+  const userId = req.user.id; // ✅ Get from token
 
-  if (!name || !duration || !category || !date) {
-    return res.status(400).json({ success: false, message: "All fields are required" });
-  }
+  console.log("Update Request:", { id, userId, name, duration, category, date }); // ✅ Debugging
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ success: false, message: "Invalid exercise ID" });
   }
 
   try {
-    // ✅ Find the exercise first
     const exercise = await ExerciseModel.findById(id);
     if (!exercise) {
       return res.status(404).json({ success: false, message: "Exercise not found" });
     }
 
-    // ✅ Ensure only the owner can update
     if (exercise.user.toString() !== userId) {
       return res.status(403).json({ success: false, message: "Unauthorized: You cannot edit this exercise" });
     }
 
-    // ✅ Update the exercise
     const updatedExercise = await ExerciseModel.findByIdAndUpdate(
       id,
       { name, duration, category, date },
-      { new: true } // ✅ Return updated document
+      { new: true }
     );
 
     res.json({ success: true, message: "Exercise updated successfully!", exercise: updatedExercise });
