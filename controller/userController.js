@@ -8,6 +8,8 @@ export const getData = async (req, res) => {
         if (!users || users.length === 0) {
             return res.json({ success: false, message: "User Data not found firstly signup" });
         }
+        if(users.isAdmin)
+        {
 
         const userMap = users.map(user => ({
             _id: user._id,
@@ -21,7 +23,7 @@ export const getData = async (req, res) => {
             success: true,
             users: userMap  // ✅ Correct response
         });
-
+      }
     } catch (error) {
         return res.json({ success: false, message: error.message });
     }

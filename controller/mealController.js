@@ -4,13 +4,14 @@ import mealModel from '../models/mealsModel.js';
 
 export const Meal = async (req, res) => {
     try {
-        console.log("Fetching meals for user:", req.body.userId); // ✅ Debug User ID
         const meals = await mealModel.find({ user: req.body.userId });
-        console.log("Meals Found:", meals); // ✅ Debugging
+        if(!meals.length)
+        {
+            return res.json({ success: true, meals: [] });
+        }
 
         res.json({ success: true, meals });
     } catch (error) {
-        console.error("Error fetching meals:", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -18,10 +19,7 @@ export const Meal = async (req, res) => {
 
 export const createMeal = async(req, res)=>
     {
-        console.log("Hello how are you")
         const { userId,category, calories, carbs, fats, protiens, sodium, sugar, fiber ,date} = req.body ;
-        // const  = '2025-04-14';
-        // console.log(date)
        
         if(!category || !calories || !carbs || !fats || !protiens || !sodium || !sugar || !fiber || !date)
         {
@@ -29,7 +27,7 @@ export const createMeal = async(req, res)=>
         }
         try 
         {
-            const isPresent = await mealModel.findOne({date});
+            const isPresent = await mealModel.findOne({userId});
             if(isPresent)
             {
                 return res.json({success: false, message: 'Today data already exist'})
@@ -49,27 +47,33 @@ export const createMeal = async(req, res)=>
     
     export const editMeal = async(req, res)=>
     {
-        const date = req.params.date;
-        const { category, calories, carbs, fats, protiens, sodium, sugar, fiber, userId} = req.body ;
-        if(!category || !calories || !carbs || !fats || !protiens || !sodium || !sugar || !fiber || !sugar )
+        const {id} = req.params;
+        console.log(id)
+        const { category, calories, carbs, fats, protiens, sodium, sugar, fiber, userId, date} = req.body ;
+        if(!category || !calories || !carbs || !fats || !protiens || !sodium || !sugar || !fiber || !date)
             {
                 return res.json({success: false, message:'Fields are empty'})
             }
         try 
         {
-            const isPresent = await mealModel.findOne({date});
+            const isPresent = await mealModel.findOne({user: userId});
             if(!isPresent)
             {
                 return res.json({success: false, message: 'Today data are not exist'})
             }
-            const filter = {user: userId, date};
+            const filter = { user: userId};
+            
             const update = {
-                category, calories, carbs, fats, protiens, sodium, sugar, fiber
+                category, calories, carbs, fats, protiens, sodium, sugar, fiber, date
             }
             const editData = await mealModel.findOneAndUpdate(filter, update);
+            if(!editData)
+            {
+                console.log("Nothing")
+            }
             await editData.save()
           
-    
+            console.log("Data updated")
             return res.json({success: true, message: 'Data Updated Successfully'})
     
         }
@@ -83,8 +87,7 @@ export const createMeal = async(req, res)=>
         try {
           const mealId = req.params.id;
       
-          console.log("Received delete request for meal ID:", mealId);
-      
+        
           const deletedMeal = await mealModel.findByIdAndDelete(mealId);
           
           if (!deletedMeal) {

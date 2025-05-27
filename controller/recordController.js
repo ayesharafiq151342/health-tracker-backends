@@ -3,8 +3,27 @@ import userModelRecord from "../models/mRecordsModel.js";
 // ✅ GET Medical Records
 export const getRecords = async (req, res) => {
   try {
-    const records = await userModelRecord.find({ user: req.body.userId });
-    res.json({ success: true, records });
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1; // Month is 0-indexed
+    const day = today.getDate();
+    
+    const records = await userModelRecord.find({ user: req.body.userId }).sort({ $natural: -1 }).limit(30);
+    const todayRecords = await userModelRecord.find({user: req.body.userId,  $expr: {
+      $and: [
+        { $eq: [{ $year: "$date" }, year] },
+        { $eq: [{ $month: "$date" }, month] },
+        { $eq: [{ $dayOfMonth: "$date" }, day]},
+      ]
+    }});
+    const prevRecords = await userModelRecord.find({user: req.body.userId,  $expr: {
+      $and: [
+        { $eq: [{ $year: "$date" }, year] },
+        { $eq: [{ $month: "$date" }, month] },
+        { $eq: [{ $dayOfMonth: "$date" }, day-1]},
+      ]
+    }});
+    res.json({ success: true, records, todayRecords, prevRecords });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -17,8 +36,7 @@ export const createRecord = async (req, res) => {
   if (!heartBeat || !systolic || !diaSystolic || !sugar || !date) {
     return res.json({ success: false, message: "Fields are empty" });
   }
-  
-console.log("hello how are your");
+
 
   try {
     const existingRecord = await userModelRecord.findOne({
@@ -51,8 +69,8 @@ console.log("hello how are your");
 
 // ✅ EDIT Medical Record
 export const editRecord = async (req, res) => {
-  const { userId, heartBeat, systolic, diaSystolic, sugar } = req.body;
-  const date = req.params.date; // ✅ Ensure Date Format
+  const { date, userId, heartBeat, systolic, diaSystolic, sugar } = req.body;
+  const id = req.params.id; // ✅ Ensure Date Format
 
   if (!heartBeat || !systolic || !diaSystolic || !sugar) {
     return res.json({ success: false, message: "Fields are empty" });
@@ -60,8 +78,8 @@ export const editRecord = async (req, res) => {
 
   try {
     const record = await userModelRecord.findOneAndUpdate(
-      { user: userId, date: date },
-      { heartBeat, bloodPressure: { systolic, diaSystolic }, sugar },
+      { user: userId, _id: id },
+      { heartBeat, bloodPressure: { systolic, diaSystolic }, sugar, date },
       { new: true }
     );
 
@@ -77,11 +95,11 @@ export const editRecord = async (req, res) => {
 
 // ✅ DELETE Medical Record
 export const deleteRecord = async (req, res) => {
-  const { userId } = req.body;
-  const date = new Date(req.params.date).toISOString(); // ✅ Ensure Date Format
-
+  const { userId } = req.params.id;
+  // const date = new Date(req.params.date).toISOString(); // ✅ Ensure Date Format
+  console.log(userId)
   try {
-    const deletedRecord = await userModelRecord.findOneAndDelete({ user: userId, date });
+    const deletedRecord = await userModelRecord.findOneAndDelete(userId );
 
     if (!deletedRecord) {
       return res.json({ success: false, message: "No record found for deletion" });

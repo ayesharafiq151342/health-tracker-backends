@@ -44,5 +44,5 @@ const mealSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const MealModel = mongoose.model("Meal", mealSchema);
+const MealModel = mongoose.model("meal", mealSchema);
 export default MealModel;

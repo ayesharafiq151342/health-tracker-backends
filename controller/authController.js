@@ -20,7 +20,7 @@ export  const  register = async (req, res)=>
         const hashPassword = await bcrypt.hash(password, 10);
         const user = new userModel({name, email, password: hashPassword});
         await user.save();
-        const token = jwt.sign({id: user._id},'secret@123',{expiresIn: '1h'});
+        const token = jwt.sign({id: user._id, role: user.isAdmin},'secret@123',{expiresIn: '1h'});
         res.cookie('token', token, {
             
             secure: process.env.NODE_ENV === 'production',
@@ -51,7 +51,7 @@ export const login = async (req, res) => {
       if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
       }
-  
+      console.log(user.isAdmin)
       // Check if the account is deactivated
       if (!user.status) {
         return res.status(403).json({ success: false, message: "Your account is deactivated. Please contact the administrator." });
@@ -64,7 +64,7 @@ export const login = async (req, res) => {
       }
   
       // Generate a token (adjust secret & options as needed)
-      const token = jwt.sign({ id: user._id }, 'secret@123', { expiresIn: '1h' });
+      const token = jwt.sign({ id: user._id , role: user.isAdmin}, 'secret@123', { expiresIn: '1h' });
        console.log(token)
       // Optionally, set a cookie or return the token
       res.cookie('token', token, {
